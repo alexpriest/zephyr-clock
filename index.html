@@ -595,6 +595,7 @@
         }
 
         function rebuildForDay() {
+            suppressNextTransition = true; // Don't fire confetti when switching days
             updateDateDisplay();
             document.getElementById('clock-svg').innerHTML = '';
             drawClock();
@@ -728,6 +729,7 @@
         }
 
         let lastActivityLabel = null;
+        let suppressNextTransition = false;
 
         function updateClock() {
             const now = new Date();
@@ -749,11 +751,12 @@
 
             const activity = getCurrentActivity(currentHour);
 
-            // Check for activity transition
-            if (lastActivityLabel !== null && lastActivityLabel !== activity.label) {
+            // Check for activity transition (only if not suppressed by day switch)
+            if (lastActivityLabel !== null && lastActivityLabel !== activity.label && !suppressNextTransition) {
                 celebrateTransition();
             }
             lastActivityLabel = activity.label;
+            suppressNextTransition = false;
 
             document.getElementById('activity-text').textContent = activity.emoji + " " + activity.label;
             updateLegendHighlight(activity.label);
