@@ -496,18 +496,6 @@
                 path.setAttribute("data-label", item.label);
                 path.style.cursor = 'pointer';
 
-                // Use both click and touchend for iPad compatibility
-                path.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleSegmentTap(item.label);
-                });
-                path.addEventListener('touchend', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleSegmentTap(item.label);
-                }, { passive: false });
-
                 svg.appendChild(path);
             });
 
@@ -737,9 +725,52 @@
             });
         }
 
+        // Handle taps on the SVG clock
+        function setupClockTapHandler() {
+            const svg = document.getElementById('clock-svg');
+
+            function handleTap(e) {
+                e.preventDefault();
+
+                // Get tap coordinates relative to SVG
+                const rect = svg.getBoundingClientRect();
+                const clientX = e.touches ? e.changedTouches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.changedTouches[0].clientY : e.clientY;
+
+                // Convert to SVG coordinates
+                const svgX = ((clientX - rect.left) / rect.width) * 240;
+                const svgY = ((clientY - rect.top) / rect.height) * 240;
+
+                // Calculate angle from center (120, 120)
+                const dx = svgX - 120;
+                const dy = svgY - 120;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                // Only respond if within the clock face
+                if (distance > 100) return;
+
+                // Calculate angle (0 = top, clockwise)
+                let angle = Math.atan2(dx, -dy) * (180 / Math.PI);
+                if (angle < 0) angle += 360;
+
+                // Convert angle to hour
+                const hour = (angle / 360) * 24;
+
+                // Find which activity this hour falls into
+                const activity = getCurrentActivity(hour);
+                if (activity) {
+                    handleSegmentTap(activity.label);
+                }
+            }
+
+            svg.addEventListener('click', handleTap);
+            svg.addEventListener('touchend', handleTap, { passive: false });
+        }
+
         // Initialize
         drawClock();
         buildLegend();
+        setupClockTapHandler();
         updateClock();
         setInterval(updateClock, 1000);
     </script>
