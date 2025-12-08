@@ -349,15 +349,20 @@
         }
 
         .clock-segment {
-            transition: filter 1s ease;
+            transition: stroke 0.3s ease, stroke-width 0.3s ease, opacity 0.3s ease;
+            stroke: transparent;
+            stroke-width: 0;
         }
 
         .clock-segment.highlighted {
-            filter: drop-shadow(0 0 8px rgba(255,215,0,0.8)) brightness(1.2);
+            stroke: #ffd700;
+            stroke-width: 4;
+            opacity: 1;
         }
 
         .clock-segment.fading {
-            filter: drop-shadow(0 0 0px rgba(255,215,0,0)) brightness(1);
+            stroke: transparent;
+            stroke-width: 0;
         }
     </style>
 </head>
@@ -399,8 +404,12 @@
         function initAudio() {
             if (!audioContext) {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                document.getElementById('tap-hint').classList.add('hidden');
             }
+            // iOS Safari requires resume() to be called during a user gesture
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            document.getElementById('tap-hint').classList.add('hidden');
         }
 
         function playChime() {
@@ -964,10 +973,9 @@
             // Highlight clock segment
             document.querySelectorAll('.clock-segment').forEach(seg => {
                 const segLabel = seg.getAttribute('data-label');
+                seg.classList.remove('highlighted', 'fading');
                 if (segLabel === label) {
-                    seg.setAttribute('class', 'clock-segment highlighted');
-                } else {
-                    seg.setAttribute('class', 'clock-segment');
+                    seg.classList.add('highlighted');
                 }
             });
 
@@ -983,7 +991,7 @@
                 item.classList.add('fading');
             });
             document.querySelectorAll('.clock-segment.highlighted').forEach(seg => {
-                seg.setAttribute('class', 'clock-segment highlighted fading');
+                seg.classList.add('fading');
             });
 
             // Remove all classes after fade completes
@@ -998,7 +1006,7 @@
                 item.classList.remove('highlighted', 'fading');
             });
             document.querySelectorAll('.clock-segment').forEach(seg => {
-                seg.setAttribute('class', 'clock-segment');
+                seg.classList.remove('highlighted', 'fading');
             });
         }
 
