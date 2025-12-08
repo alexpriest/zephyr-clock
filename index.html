@@ -99,9 +99,10 @@
 
         .clock-container {
             position: relative;
-            width: min(90vw, 700px);
-            height: min(90vw, 700px);
+            width: min(70vw, 55vh, 500px);
+            height: min(70vw, 55vh, 500px);
             aspect-ratio: 1 / 1;
+            flex-shrink: 0;
         }
 
         .clock {
@@ -490,20 +491,21 @@
                 }
 
                 path.setAttribute("fill", item.color);
-                path.classList.add('clock-segment');
-                path.dataset.label = item.label;
+                path.setAttribute("class", "clock-segment");
+                path.setAttribute("data-label", item.label);
                 path.style.cursor = 'pointer';
-                path.style.transition = 'filter 0.3s ease';
 
                 // Use both click and touchend for iPad compatibility
                 path.addEventListener('click', (e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     handleSegmentTap(item.label);
                 });
                 path.addEventListener('touchend', (e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     handleSegmentTap(item.label);
-                });
+                }, { passive: false });
 
                 svg.appendChild(path);
             });
@@ -616,8 +618,25 @@
             { label: "Songs", color: "#5d4e7a", emoji: "🎵" },
         ];
 
+        function playTapSound() {
+            if (!audioContext) return;
+
+            // Short, gentle tap sound
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, audioContext.currentTime); // A5
+            gain.gain.setValueAtTime(0.15, audioContext.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            osc.start(audioContext.currentTime);
+            osc.stop(audioContext.currentTime + 0.15);
+        }
+
         function handleLegendTap(label) {
             initAudio();
+            playTapSound();
             highlightSection(label);
         }
 
@@ -678,10 +697,11 @@
 
             // Highlight clock segment
             document.querySelectorAll('.clock-segment').forEach(seg => {
-                if (seg.dataset.label === label) {
-                    seg.classList.add('highlighted');
+                const segLabel = seg.getAttribute('data-label');
+                if (segLabel === label) {
+                    seg.setAttribute('class', 'clock-segment highlighted');
                 } else {
-                    seg.classList.remove('highlighted');
+                    seg.setAttribute('class', 'clock-segment');
                 }
             });
 
@@ -697,7 +717,7 @@
                 item.classList.add('fading');
             });
             document.querySelectorAll('.clock-segment.highlighted').forEach(seg => {
-                seg.classList.add('fading');
+                seg.setAttribute('class', 'clock-segment highlighted fading');
             });
 
             // Remove all classes after fade completes
@@ -712,7 +732,7 @@
                 item.classList.remove('highlighted', 'fading');
             });
             document.querySelectorAll('.clock-segment').forEach(seg => {
-                seg.classList.remove('highlighted', 'fading');
+                seg.setAttribute('class', 'clock-segment');
             });
         }
 
