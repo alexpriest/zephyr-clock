@@ -71,6 +71,7 @@
             .clock-container {
                 width: min(50vh, 500px);
                 height: min(50vh, 500px);
+                flex-shrink: 0;
             }
 
             .sidebar {
@@ -100,6 +101,7 @@
             position: relative;
             width: min(90vw, 700px);
             height: min(90vw, 700px);
+            aspect-ratio: 1 / 1;
         }
 
         .clock {
@@ -108,6 +110,7 @@
             border-radius: 50%;
             position: relative;
             box-shadow: 0 0 60px rgba(255,255,255,0.1);
+            aspect-ratio: 1 / 1;
         }
 
         .clock-center {
@@ -387,9 +390,11 @@
         // Initialize audio on first user interaction
         document.addEventListener('click', initAudio, { once: true });
         document.addEventListener('touchstart', initAudio, { once: true });
+        document.addEventListener('touchend', initAudio, { once: true });
 
-        const schedule = [
-            { start: 0, end: 7, label: "Sleep", color: "#1e3a5f", emoji: "😴", noStartLine: true },
+        // Schedule for drawing (sleep is one segment wrapping around midnight)
+        const scheduleForDrawing = [
+            { start: 20.25, end: 31, label: "Sleep", color: "#1e3a5f", emoji: "😴" }, // 8:15pm to 7am (31 = 24+7)
             { start: 7, end: 8, label: "Wake Up, Breakfast, Get Ready", color: "#4a7c59", emoji: "🌅" },
             { start: 8, end: 8.5, label: "Go to School", color: "#e8a838", emoji: "🚗" },
             { start: 8.5, end: 17, label: "School", color: "#5ba4d9", emoji: "🏫" },
@@ -398,7 +403,20 @@
             { start: 19, end: 19.5, label: "Bath & Jammies", color: "#c97b84", emoji: "🛁" },
             { start: 19.5, end: 20, label: "Stories & Candlelight", color: "#8b6aa8", emoji: "📚" },
             { start: 20, end: 20.25, label: "Songs", color: "#5d4e7a", emoji: "🎵" },
-            { start: 20.25, end: 24, label: "Sleep", color: "#1e3a5f", emoji: "", noEndLine: true },
+        ];
+
+        // Schedule for time lookup (separate early/late sleep for logic)
+        const schedule = [
+            { start: 0, end: 7, label: "Sleep", color: "#1e3a5f", emoji: "😴" },
+            { start: 7, end: 8, label: "Wake Up, Breakfast, Get Ready", color: "#4a7c59", emoji: "🌅" },
+            { start: 8, end: 8.5, label: "Go to School", color: "#e8a838", emoji: "🚗" },
+            { start: 8.5, end: 17, label: "School", color: "#5ba4d9", emoji: "🏫" },
+            { start: 17, end: 18, label: "Play", color: "#7eb5e0", emoji: "🎨" },
+            { start: 18, end: 19, label: "Dinner", color: "#e88a5a", emoji: "🍽️" },
+            { start: 19, end: 19.5, label: "Bath & Jammies", color: "#c97b84", emoji: "🛁" },
+            { start: 19.5, end: 20, label: "Stories & Candlelight", color: "#8b6aa8", emoji: "📚" },
+            { start: 20, end: 20.25, label: "Songs", color: "#5d4e7a", emoji: "🎵" },
+            { start: 20.25, end: 24, label: "Sleep", color: "#1e3a5f", emoji: "😴" },
         ];
 
         function hourToAngle(hour) {
@@ -426,37 +444,62 @@
             ].join(" ");
         }
 
+        function handleSegmentTap(label) {
+            initAudio();
+            highlightSection(label);
+        }
+
         function drawClock() {
             const svg = document.getElementById('clock-svg');
             const centerX = 120;
             const centerY = 120;
             const radius = 100;
 
-            // Draw schedule segments (first pass - just fills, no strokes)
-            schedule.forEach(item => {
-                const startAngle = hourToAngle(item.start);
-                const endAngle = hourToAngle(item.end);
+            // Draw schedule segments using the drawing schedule (sleep as one piece)
+            scheduleForDrawing.forEach(item => {
+                // Handle wrap-around for sleep (end > 24 means it wraps)
+                const startAngle = hourToAngle(item.start % 24);
+                const endAngle = hourToAngle(item.end % 24);
 
                 const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                path.setAttribute("d", describeArc(centerX, centerY, radius, startAngle, endAngle));
+
+                // For sleep segment that wraps around midnight
+                if (item.end > 24) {
+                    // Draw as two arcs but in one path (or use a large arc)
+                    const midnightAngle = 0;
+                    const d1 = describeArc(centerX, centerY, radius, startAngle, 360);
+                    const d2 = describeArc(centerX, centerY, radius, 0, endAngle);
+
+                    // Create the combined sleep segment
+                    path.setAttribute("d", describeArc(centerX, centerY, radius, startAngle, 360 + endAngle));
+                } else {
+                    path.setAttribute("d", describeArc(centerX, centerY, radius, startAngle, endAngle));
+                }
+
                 path.setAttribute("fill", item.color);
                 path.classList.add('clock-segment');
                 path.dataset.label = item.label;
                 path.style.cursor = 'pointer';
                 path.style.transition = 'filter 0.3s ease';
-                path.addEventListener('click', () => {
-                    initAudio();
-                    highlightSection(item.label);
+
+                // Use both click and touchend for iPad compatibility
+                path.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    handleSegmentTap(item.label);
                 });
+                path.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    handleSegmentTap(item.label);
+                });
+
                 svg.appendChild(path);
             });
 
-            // Draw divider lines (skip where sleep wraps around midnight)
-            schedule.forEach((item, index) => {
-                if (item.noStartLine) return;
+            // Draw divider lines (skip sleep - it's one continuous block)
+            scheduleForDrawing.forEach((item, index) => {
+                if (item.label === "Sleep") return; // No line for sleep
 
                 const startAngle = hourToAngle(item.start);
-                const innerPos = polarToCartesian(centerX, centerY, 0, startAngle);
                 const outerPos = polarToCartesian(centerX, centerY, radius, startAngle);
 
                 const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
@@ -560,6 +603,11 @@
             { label: "Songs", color: "#5d4e7a", emoji: "🎵" },
         ];
 
+        function handleLegendTap(label) {
+            initAudio();
+            highlightSection(label);
+        }
+
         function buildLegend() {
             const legend = document.getElementById('legend');
 
@@ -571,9 +619,14 @@
                     <div class="legend-color" style="background: ${item.color}">${item.emoji}</div>
                     <span>${item.label}</span>
                 `;
-                div.addEventListener('click', () => {
-                    initAudio();
-                    highlightSection(item.label);
+                // Use both click and touchend for iPad compatibility
+                div.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    handleLegendTap(item.label);
+                });
+                div.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    handleLegendTap(item.label);
                 });
                 legend.appendChild(div);
             });
