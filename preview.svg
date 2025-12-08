@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" width="1200" height="1200">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e"/>
+      <stop offset="100%" style="stop-color:#16213e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="1200" fill="url(#bg)"/>
+
+  <!-- Clock circle background - centered -->
+  <circle cx="350" cy="600" r="240" fill="rgba(255,255,255,0.05)"/>
+
+  <!-- Clock segments (simplified representation) -->
+  <!-- Sleep (night) - top area -->
+  <path d="M350 600 L350 360 A240 240 0 0 1 542 430 Z" fill="#1e3a5f"/>
+  <!-- Morning wake up -->
+  <path d="M350 600 L542 430 A240 240 0 0 1 590 600 Z" fill="#4a7c59"/>
+  <!-- School travel -->
+  <path d="M350 600 L590 600 A240 240 0 0 1 542 770 Z" fill="#e8a838"/>
+  <!-- School - big chunk -->
+  <path d="M350 600 L542 770 A240 240 0 0 1 200 800 Z" fill="#5ba4d9"/>
+  <!-- Play -->
+  <path d="M350 600 L200 800 A240 240 0 0 1 130 680 Z" fill="#7eb5e0"/>
+  <!-- Dinner -->
+  <path d="M350 600 L130 680 A240 240 0 0 1 130 520 Z" fill="#e88a5a"/>
+  <!-- Bath -->
+  <path d="M350 600 L130 520 A240 240 0 0 1 190 420 Z" fill="#c97b84"/>
+  <!-- Stories -->
+  <path d="M350 600 L190 420 A240 240 0 0 1 290 370 Z" fill="#8b6aa8"/>
+  <!-- Songs -->
+  <path d="M350 600 L290 370 A240 240 0 0 1 350 360 Z" fill="#5d4e7a"/>
+
+  <!-- Clock hand -->
+  <line x1="350" y1="600" x2="350" y2="400" stroke="#ffd700" stroke-width="10" stroke-linecap="round"/>
+
+  <!-- Clock center -->
+  <circle cx="350" cy="600" r="15" fill="#fff"/>
+
+  <!-- Hour markers around edge -->
+  <text x="350" y="340" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="20" font-family="Arial, sans-serif" font-weight="bold">12a</text>
+  <text x="575" y="450" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="20" font-family="Arial, sans-serif" font-weight="bold">3a</text>
+  <text x="610" y="610" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="20" font-family="Arial, sans-serif" font-weight="bold">6a</text>
+  <text x="575" y="780" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="20" font-family="Arial, sans-serif" font-weight="bold">9a</text>
+  <text x="350" y="875" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="20" font-family="Arial, sans-serif" font-weight="bold">12p</text>
+  <text x="125" y="780" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="20" font-family="Arial, sans-serif" font-weight="bold">3p</text>
+  <text x="90" y="610" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="20" font-family="Arial, sans-serif" font-weight="bold">6p</text>
+  <text x="125" y="450" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="20" font-family="Arial, sans-serif" font-weight="bold">9p</text>
+
+  <!-- Title on right side -->
+  <text x="850" y="420" text-anchor="middle" fill="#ffffff" font-size="72" font-family="Arial, sans-serif" font-weight="bold">Zephyr's</text>
+  <text x="850" y="510" text-anchor="middle" fill="#ffffff" font-size="72" font-family="Arial, sans-serif" font-weight="bold">Day Clock</text>
+
+  <!-- Subtitle -->
+  <text x="850" y="590" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="28" font-family="Arial, sans-serif">A visual daily routine</text>
+  <text x="850" y="630" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="28" font-family="Arial, sans-serif">for little ones</text>
+
+  <!-- Legend items centered -->
+  <rect x="650" y="700" width="50" height="50" rx="8" fill="#1e3a5f"/>
+  <text x="675" y="735" text-anchor="middle" font-size="30">😴</text>
+
+  <rect x="720" y="700" width="50" height="50" rx="8" fill="#5ba4d9"/>
+  <text x="745" y="735" text-anchor="middle" font-size="30">🏫</text>
+
+  <rect x="790" y="700" width="50" height="50" rx="8" fill="#7eb5e0"/>
+  <text x="815" y="735" text-anchor="middle" font-size="30">🎨</text>
+
+  <rect x="860" y="700" width="50" height="50" rx="8" fill="#e88a5a"/>
+  <text x="885" y="735" text-anchor="middle" font-size="30">🍽️</text>
+
+  <rect x="930" y="700" width="50" height="50" rx="8" fill="#c97b84"/>
+  <text x="955" y="735" text-anchor="middle" font-size="30">🛁</text>
+
+  <rect x="1000" y="700" width="50" height="50" rx="8" fill="#8b6aa8"/>
+  <text x="1025" y="735" text-anchor="middle" font-size="30">📚</text>
+
+  <!-- Small tagline at bottom -->
+  <text x="850" y="820" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="22" font-family="Arial, sans-serif">prjcts.alxprst.co/zephyr-clock</text>
+</svg>
