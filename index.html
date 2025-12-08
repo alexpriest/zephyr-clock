@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zephyr's Day Clock</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            font-family: 'Comic Sans MS', 'Chalkboard', sans-serif;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .clock-container {
+            position: relative;
+            width: min(90vw, 700px);
+            height: min(90vw, 700px);
+        }
+
+        .clock {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            position: relative;
+            box-shadow: 0 0 60px rgba(255,255,255,0.1);
+        }
+
+        .clock-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            z-index: 20;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+
+        .hand {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            transform-origin: bottom center;
+            transform: translateX(-50%) rotate(0deg);
+            width: 8px;
+            height: 38%;
+            background: linear-gradient(to top, #fff, #ffd700);
+            border-radius: 4px;
+            z-index: 15;
+            box-shadow: 0 0 15px rgba(255,215,0,0.5);
+        }
+
+        .current-activity {
+            margin-top: 30px;
+            padding: 20px 40px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .current-activity h2 {
+            color: #ffd700;
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .current-activity p {
+            color: #fff;
+            font-size: 1.8rem;
+        }
+
+        .current-time {
+            color: rgba(255,255,255,0.7);
+            font-size: 1rem;
+            margin-top: 10px;
+        }
+
+        .legend {
+            margin-top: 25px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px 20px;
+            max-width: 600px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #fff;
+            font-size: 1rem;
+            padding: 6px 10px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .legend-item.active {
+            background: rgba(255,215,0,0.2);
+            box-shadow: 0 0 12px rgba(255,215,0,0.4);
+        }
+
+        .legend-color {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>⭐ Zephyr's Day Clock ⭐</h1>
+
+    <div class="clock-container">
+        <div class="clock">
+            <svg viewBox="0 0 240 240" id="clock-svg">
+                <!-- Segments will be drawn here -->
+            </svg>
+            <div class="hand" id="hand"></div>
+            <div class="clock-center"></div>
+        </div>
+    </div>
+
+    <div class="current-activity">
+        <h2>Right Now:</h2>
+        <p id="activity-text">Loading...</p>
+        <div class="current-time" id="current-time"></div>
+    </div>
+
+    <div class="legend" id="legend"></div>
+
+    <script>
+        const schedule = [
+            { start: 0, end: 7, label: "Sleep", color: "#1e3a5f", emoji: "😴" },
+            { start: 7, end: 8, label: "Wake Up, Breakfast, Get Ready", color: "#4a7c59", emoji: "🌅" },
+            { start: 8, end: 8.5, label: "Go to School", color: "#e8a838", emoji: "🚗" },
+            { start: 8.5, end: 17, label: "School", color: "#5ba4d9", emoji: "🏫" },
+            { start: 17, end: 18, label: "Play", color: "#7eb5e0", emoji: "🎨" },
+            { start: 18, end: 19, label: "Dinner", color: "#e88a5a", emoji: "🍽️" },
+            { start: 19, end: 19.5, label: "Bath & Jammies", color: "#c97b84", emoji: "🛁" },
+            { start: 19.5, end: 20, label: "Stories & Candlelight", color: "#8b6aa8", emoji: "📚" },
+            { start: 20, end: 20.25, label: "Songs", color: "#5d4e7a", emoji: "🎵" },
+            { start: 20.25, end: 24, label: "Sleep", color: "#1e3a5f", emoji: "" },
+        ];
+
+        function hourToAngle(hour) {
+            // 12am (midnight) at top = 0 degrees, goes clockwise
+            return (hour / 24) * 360;
+        }
+
+        function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
+            const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
+            return {
+                x: centerX + (radius * Math.cos(angleInRadians)),
+                y: centerY + (radius * Math.sin(angleInRadians))
+            };
+        }
+
+        function describeArc(x, y, radius, startAngle, endAngle) {
+            const start = polarToCartesian(x, y, radius, startAngle);
+            const end = polarToCartesian(x, y, radius, endAngle);
+            const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+            return [
+                "M", x, y,
+                "L", start.x, start.y,
+                "A", radius, radius, 0, largeArcFlag, 1, end.x, end.y,
+                "Z"
+            ].join(" ");
+        }
+
+        function drawClock() {
+            const svg = document.getElementById('clock-svg');
+            const centerX = 120;
+            const centerY = 120;
+            const radius = 100;
+
+            // Draw schedule segments
+            schedule.forEach(item => {
+                const startAngle = hourToAngle(item.start);
+                const endAngle = hourToAngle(item.end);
+
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("d", describeArc(centerX, centerY, radius, startAngle, endAngle));
+                path.setAttribute("fill", item.color);
+                path.setAttribute("stroke", "rgba(255,255,255,0.2)");
+                path.setAttribute("stroke-width", "1");
+                svg.appendChild(path);
+            });
+
+            // Draw hour markers and numbers
+            for (let hour = 0; hour < 24; hour += 3) {
+                const angle = hourToAngle(hour);
+                const innerPos = polarToCartesian(centerX, centerY, radius * 0.85, angle);
+                const outerPos = polarToCartesian(centerX, centerY, radius * 0.95, angle);
+
+                // Tick mark
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", innerPos.x);
+                line.setAttribute("y1", innerPos.y);
+                line.setAttribute("x2", outerPos.x);
+                line.setAttribute("y2", outerPos.y);
+                line.setAttribute("stroke", "rgba(255,255,255,0.6)");
+                line.setAttribute("stroke-width", "2");
+                svg.appendChild(line);
+
+                // Hour number
+                const textPos = polarToCartesian(centerX, centerY, radius * 0.73, angle);
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", textPos.x);
+                text.setAttribute("y", textPos.y);
+                text.setAttribute("text-anchor", "middle");
+                text.setAttribute("dominant-baseline", "middle");
+                text.setAttribute("fill", "rgba(255,255,255,0.9)");
+                text.setAttribute("font-size", "10");
+                text.setAttribute("font-weight", "bold");
+                text.textContent = hour === 0 ? "12a" : hour === 12 ? "12p" : hour < 12 ? `${hour}a` : `${hour-12}p`;
+                svg.appendChild(text);
+            }
+        }
+
+        function getCurrentActivity(hour) {
+            for (const item of schedule) {
+                if (hour >= item.start && hour < item.end) {
+                    return item;
+                }
+            }
+            return schedule[0];
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+
+            const currentHour = hours + minutes / 60 + seconds / 3600;
+            const angle = hourToAngle(currentHour);
+
+            const hand = document.getElementById('hand');
+            hand.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+
+            const activity = getCurrentActivity(currentHour);
+            document.getElementById('activity-text').textContent = activity.emoji + " " + activity.label;
+            updateLegendHighlight(activity.label);
+
+            const timeStr = now.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+            document.getElementById('current-time').textContent = timeStr;
+        }
+
+        const legendItems = [
+            { label: "Sleep", color: "#1e3a5f", emoji: "😴" },
+            { label: "Wake Up, Breakfast, Get Ready", color: "#4a7c59", emoji: "🌅" },
+            { label: "Go to School", color: "#e8a838", emoji: "🚗" },
+            { label: "School", color: "#5ba4d9", emoji: "🏫" },
+            { label: "Play", color: "#7eb5e0", emoji: "🎨" },
+            { label: "Dinner", color: "#e88a5a", emoji: "🍽️" },
+            { label: "Bath & Jammies", color: "#c97b84", emoji: "🛁" },
+            { label: "Stories & Candlelight", color: "#8b6aa8", emoji: "📚" },
+            { label: "Songs", color: "#5d4e7a", emoji: "🎵" },
+        ];
+
+        function buildLegend() {
+            const legend = document.getElementById('legend');
+
+            legendItems.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'legend-item';
+                div.dataset.label = item.label;
+                div.innerHTML = `
+                    <div class="legend-color" style="background: ${item.color}">${item.emoji}</div>
+                    <span>${item.label}</span>
+                `;
+                legend.appendChild(div);
+            });
+        }
+
+        function updateLegendHighlight(currentLabel) {
+            document.querySelectorAll('.legend-item').forEach(item => {
+                if (item.dataset.label === currentLabel) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+
+        // Initialize
+        drawClock();
+        buildLegend();
+        updateClock();
+        setInterval(updateClock, 1000);
+    </script>
+</body>
+</html>
