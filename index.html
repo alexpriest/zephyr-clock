@@ -222,7 +222,7 @@
             font-size: 1rem;
             padding: 6px 10px;
             border-radius: 8px;
-            transition: all 0.3s ease;
+            transition: background 1s ease, box-shadow 1s ease;
             cursor: pointer;
         }
 
@@ -234,6 +234,11 @@
         .legend-item.highlighted {
             background: rgba(255,215,0,0.2);
             box-shadow: 0 0 12px rgba(255,215,0,0.4);
+        }
+
+        .legend-item.fading {
+            background: rgba(255,215,0,0);
+            box-shadow: 0 0 0px rgba(255,215,0,0);
         }
 
         .legend-color {
@@ -272,8 +277,16 @@
             height: 100%;
         }
 
+        .clock-segment {
+            transition: filter 1s ease;
+        }
+
         .clock-segment.highlighted {
             filter: drop-shadow(0 0 8px rgba(255,215,0,0.8)) brightness(1.2);
+        }
+
+        .clock-segment.fading {
+            filter: drop-shadow(0 0 0px rgba(255,215,0,0)) brightness(1);
         }
     </style>
 </head>
@@ -672,8 +685,23 @@
                 }
             });
 
-            // Clear highlight after 1 second
+            // Start fade out after 1 second
             userHighlightTimeout = setTimeout(() => {
+                fadeOutHighlight();
+            }, 1000);
+        }
+
+        function fadeOutHighlight() {
+            // Add fading class to trigger CSS transition
+            document.querySelectorAll('.legend-item.highlighted').forEach(item => {
+                item.classList.add('fading');
+            });
+            document.querySelectorAll('.clock-segment.highlighted').forEach(seg => {
+                seg.classList.add('fading');
+            });
+
+            // Remove all classes after fade completes
+            setTimeout(() => {
                 clearHighlight();
             }, 1000);
         }
@@ -681,10 +709,10 @@
         function clearHighlight() {
             userHighlight = null;
             document.querySelectorAll('.legend-item').forEach(item => {
-                item.classList.remove('highlighted');
+                item.classList.remove('highlighted', 'fading');
             });
             document.querySelectorAll('.clock-segment').forEach(seg => {
-                seg.classList.remove('highlighted');
+                seg.classList.remove('highlighted', 'fading');
             });
         }
 
