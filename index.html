@@ -60,21 +60,13 @@
             }
 
             h1 {
-                position: absolute;
-                top: max(15px, env(safe-area-inset-top, 15px));
-                left: 50%;
-                transform: translateX(-50%);
                 font-size: 1.8rem;
-                margin: 0;
+                margin-bottom: 5px;
             }
 
             .date-display {
-                position: absolute;
-                top: max(50px, calc(env(safe-area-inset-top, 15px) + 35px));
-                left: 50%;
-                transform: translateX(-50%);
                 font-size: 1.1rem;
-                margin: 0;
+                margin-bottom: 15px;
             }
 
             .clock-container {
@@ -289,6 +281,40 @@
             pointer-events: none;
         }
 
+        .day-toggles {
+            display: flex;
+            gap: 8px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .day-toggle {
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.7);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            font-family: inherit;
+        }
+
+        .day-toggle:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .day-toggle.active {
+            background: rgba(255,215,0,0.3);
+            color: #fff;
+            box-shadow: 0 0 8px rgba(255,215,0,0.3);
+        }
+
+        .day-toggle.today {
+            border: 2px solid rgba(255,215,0,0.5);
+        }
+
         svg {
             width: 100%;
             height: 100%;
@@ -333,6 +359,8 @@
             <div class="legend" id="legend"></div>
         </div>
     </div>
+
+    <div class="day-toggles" id="day-toggles"></div>
 
     <div class="tap-hint" id="tap-hint">Tap anywhere to enable sounds</div>
 
@@ -503,17 +531,24 @@
             { start: 20.25, end: 24, label: "Sleep", color: "#1e3a5f", emoji: "😴" },
         ];
 
-        function getDayOfWeek() {
+        // Track which day we're viewing (null = today)
+        let viewingDay = null;
+
+        function getTodayDayOfWeek() {
             return new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
         }
 
+        function getViewingDay() {
+            return viewingDay !== null ? viewingDay : getTodayDayOfWeek();
+        }
+
         function isWeekend() {
-            const day = getDayOfWeek();
+            const day = getViewingDay();
             return day === 0 || day === 6; // Sunday or Saturday
         }
 
         function isJiuJitsuDay() {
-            const day = getDayOfWeek();
+            const day = getViewingDay();
             return day === 1 || day === 3; // Monday or Wednesday
         }
 
@@ -527,6 +562,44 @@
             if (isWeekend()) return weekendSchedule;
             if (isJiuJitsuDay()) return jiuJitsuSchedule;
             return baseSchedule;
+        }
+
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const fullDayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+        function buildDayToggles() {
+            const container = document.getElementById('day-toggles');
+            container.innerHTML = '';
+            const today = getTodayDayOfWeek();
+            const viewing = getViewingDay();
+
+            dayNames.forEach((name, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'day-toggle';
+                btn.textContent = name;
+
+                if (index === today) {
+                    btn.classList.add('today');
+                }
+                if (index === viewing) {
+                    btn.classList.add('active');
+                }
+
+                btn.addEventListener('click', () => {
+                    viewingDay = index === today ? null : index;
+                    rebuildForDay();
+                });
+
+                container.appendChild(btn);
+            });
+        }
+
+        function rebuildForDay() {
+            updateDateDisplay();
+            document.getElementById('clock-svg').innerHTML = '';
+            drawClock();
+            buildLegend();
+            buildDayToggles();
         }
 
         function hourToAngle(hour) {
@@ -737,9 +810,18 @@
 
         function updateDateDisplay() {
             const now = new Date();
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            const dateStr = now.toLocaleDateString('en-US', options);
-            document.getElementById('date-display').textContent = dateStr;
+            const viewing = getViewingDay();
+            const today = getTodayDayOfWeek();
+
+            if (viewingDay === null) {
+                // Showing today
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                const dateStr = now.toLocaleDateString('en-US', options);
+                document.getElementById('date-display').textContent = dateStr;
+            } else {
+                // Showing a different day
+                document.getElementById('date-display').textContent = fullDayNames[viewing] + ' Schedule';
+            }
         }
 
         function playTapSound() {
@@ -912,21 +994,24 @@
         updateDateDisplay();
         drawClock();
         buildLegend();
+        buildDayToggles();
         setupClockTapHandler();
         updateClock();
         setInterval(updateClock, 1000);
 
         // Check for day change every minute and rebuild if needed
-        let currentDay = getDayOfWeek();
+        let currentDay = getTodayDayOfWeek();
         setInterval(() => {
-            const newDay = getDayOfWeek();
+            const newDay = getTodayDayOfWeek();
             if (newDay !== currentDay) {
                 currentDay = newDay;
-                updateDateDisplay();
-                // Clear and redraw the clock
-                document.getElementById('clock-svg').innerHTML = '';
-                drawClock();
-                buildLegend();
+                // If viewing today, rebuild
+                if (viewingDay === null) {
+                    rebuildForDay();
+                } else {
+                    // Just update the toggle highlights
+                    buildDayToggles();
+                }
             }
         }, 60000);
     </script>
