@@ -61,10 +61,19 @@
 
             h1 {
                 position: absolute;
-                top: max(20px, env(safe-area-inset-top, 20px));
+                top: max(15px, env(safe-area-inset-top, 15px));
                 left: 50%;
                 transform: translateX(-50%);
-                font-size: 2rem;
+                font-size: 1.8rem;
+                margin: 0;
+            }
+
+            .date-display {
+                position: absolute;
+                top: max(50px, calc(env(safe-area-inset-top, 15px) + 35px));
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 1.1rem;
                 margin: 0;
             }
 
@@ -441,6 +450,19 @@
             { start: 20, end: 20.25, label: "Songs", color: "#5d4e7a", emoji: "🎵" },
         ];
 
+        // Weekend schedule (Sat, Sun)
+        const weekendScheduleForDrawing = [
+            { start: 20.25, end: 31, label: "Sleep", color: "#1e3a5f", emoji: "😴" },
+            { start: 7, end: 8, label: "Wake Up, Breakfast, Get Ready", color: "#4a7c59", emoji: "🌅" },
+            { start: 8, end: 13, label: "Family Time", color: "#5ba4d9", emoji: "👨‍👩‍👧‍👦" },
+            { start: 13, end: 15, label: "Nap", color: "#9b88b4", emoji: "💤" },
+            { start: 15, end: 18, label: "Family Time", color: "#5ba4d9", emoji: "👨‍👩‍👧‍👦" },
+            { start: 18, end: 19, label: "Dinner", color: "#e88a5a", emoji: "🍽️" },
+            { start: 19, end: 19.5, label: "Bath & Jammies", color: "#c97b84", emoji: "🛁" },
+            { start: 19.5, end: 20, label: "Stories & Candlelight", color: "#8b6aa8", emoji: "📚" },
+            { start: 20, end: 20.25, label: "Songs", color: "#5d4e7a", emoji: "🎵" },
+        ];
+
         const baseSchedule = [
             { start: 0, end: 7, label: "Sleep", color: "#1e3a5f", emoji: "😴" },
             { start: 7, end: 8, label: "Wake Up, Breakfast, Get Ready", color: "#4a7c59", emoji: "🌅" },
@@ -468,8 +490,26 @@
             { start: 20.25, end: 24, label: "Sleep", color: "#1e3a5f", emoji: "😴" },
         ];
 
+        const weekendSchedule = [
+            { start: 0, end: 7, label: "Sleep", color: "#1e3a5f", emoji: "😴" },
+            { start: 7, end: 8, label: "Wake Up, Breakfast, Get Ready", color: "#4a7c59", emoji: "🌅" },
+            { start: 8, end: 13, label: "Family Time", color: "#5ba4d9", emoji: "👨‍👩‍👧‍👦" },
+            { start: 13, end: 15, label: "Nap", color: "#9b88b4", emoji: "💤" },
+            { start: 15, end: 18, label: "Family Time", color: "#5ba4d9", emoji: "👨‍👩‍👧‍👦" },
+            { start: 18, end: 19, label: "Dinner", color: "#e88a5a", emoji: "🍽️" },
+            { start: 19, end: 19.5, label: "Bath & Jammies", color: "#c97b84", emoji: "🛁" },
+            { start: 19.5, end: 20, label: "Stories & Candlelight", color: "#8b6aa8", emoji: "📚" },
+            { start: 20, end: 20.25, label: "Songs", color: "#5d4e7a", emoji: "🎵" },
+            { start: 20.25, end: 24, label: "Sleep", color: "#1e3a5f", emoji: "😴" },
+        ];
+
         function getDayOfWeek() {
             return new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
+        }
+
+        function isWeekend() {
+            const day = getDayOfWeek();
+            return day === 0 || day === 6; // Sunday or Saturday
         }
 
         function isJiuJitsuDay() {
@@ -478,11 +518,15 @@
         }
 
         function getScheduleForDrawing() {
-            return isJiuJitsuDay() ? jiuJitsuScheduleForDrawing : baseScheduleForDrawing;
+            if (isWeekend()) return weekendScheduleForDrawing;
+            if (isJiuJitsuDay()) return jiuJitsuScheduleForDrawing;
+            return baseScheduleForDrawing;
         }
 
         function getSchedule() {
-            return isJiuJitsuDay() ? jiuJitsuSchedule : baseSchedule;
+            if (isWeekend()) return weekendSchedule;
+            if (isJiuJitsuDay()) return jiuJitsuSchedule;
+            return baseSchedule;
         }
 
         function hourToAngle(hour) {
@@ -674,8 +718,21 @@
             { label: "Songs", color: "#5d4e7a", emoji: "🎵" },
         ];
 
+        const weekendLegendItems = [
+            { label: "Sleep", color: "#1e3a5f", emoji: "😴" },
+            { label: "Wake Up, Breakfast, Get Ready", color: "#4a7c59", emoji: "🌅" },
+            { label: "Family Time", color: "#5ba4d9", emoji: "👨‍👩‍👧‍👦" },
+            { label: "Nap", color: "#9b88b4", emoji: "💤" },
+            { label: "Dinner", color: "#e88a5a", emoji: "🍽️" },
+            { label: "Bath & Jammies", color: "#c97b84", emoji: "🛁" },
+            { label: "Stories & Candlelight", color: "#8b6aa8", emoji: "📚" },
+            { label: "Songs", color: "#5d4e7a", emoji: "🎵" },
+        ];
+
         function getLegendItems() {
-            return isJiuJitsuDay() ? jiuJitsuLegendItems : baseLegendItems;
+            if (isWeekend()) return weekendLegendItems;
+            if (isJiuJitsuDay()) return jiuJitsuLegendItems;
+            return baseLegendItems;
         }
 
         function updateDateDisplay() {
