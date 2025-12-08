@@ -725,32 +725,35 @@
             });
         }
 
-        // Handle taps on the SVG clock
+        // Handle taps on the clock
         function setupClockTapHandler() {
-            const svg = document.getElementById('clock-svg');
+            const clockContainer = document.querySelector('.clock');
 
             function handleTap(e) {
-                e.preventDefault();
+                // Get tap coordinates
+                const rect = clockContainer.getBoundingClientRect();
+                let clientX, clientY;
 
-                // Get tap coordinates relative to SVG
-                const rect = svg.getBoundingClientRect();
-                const clientX = e.touches ? e.changedTouches[0].clientX : e.clientX;
-                const clientY = e.touches ? e.changedTouches[0].clientY : e.clientY;
+                if (e.type === 'touchstart' || e.type === 'touchend') {
+                    const touch = e.changedTouches[0] || e.touches[0];
+                    if (!touch) return;
+                    clientX = touch.clientX;
+                    clientY = touch.clientY;
+                } else {
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                }
 
-                // Convert to SVG coordinates
-                const svgX = ((clientX - rect.left) / rect.width) * 240;
-                const svgY = ((clientY - rect.top) / rect.height) * 240;
+                // Convert to position relative to clock center (0-1 range)
+                const relX = (clientX - rect.left) / rect.width - 0.5;
+                const relY = (clientY - rect.top) / rect.height - 0.5;
+                const distance = Math.sqrt(relX * relX + relY * relY);
 
-                // Calculate angle from center (120, 120)
-                const dx = svgX - 120;
-                const dy = svgY - 120;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-
-                // Only respond if within the clock face
-                if (distance > 100) return;
+                // Only respond if within the clock face (radius ~0.42 accounting for SVG viewBox)
+                if (distance > 0.45) return;
 
                 // Calculate angle (0 = top, clockwise)
-                let angle = Math.atan2(dx, -dy) * (180 / Math.PI);
+                let angle = Math.atan2(relX, -relY) * (180 / Math.PI);
                 if (angle < 0) angle += 360;
 
                 // Convert angle to hour
@@ -763,8 +766,9 @@
                 }
             }
 
-            svg.addEventListener('click', handleTap);
-            svg.addEventListener('touchend', handleTap, { passive: false });
+            // Try multiple event types for iPad compatibility
+            clockContainer.addEventListener('click', handleTap);
+            clockContainer.addEventListener('touchstart', handleTap, { passive: true });
         }
 
         // Initialize
