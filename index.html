@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Zephyr's Day Clock</title>
+
+    <!-- iOS Web App Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Zephyr Clock">
+
+    <!-- Prevent text selection and callouts -->
+    <meta name="format-detection" content="telephone=no">
     <style>
         * {
             margin: 0;
@@ -20,6 +28,12 @@
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             font-family: 'Comic Sans MS', 'Chalkboard', sans-serif;
             padding: 20px;
+            padding-top: env(safe-area-inset-top, 20px);
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            overflow: hidden;
         }
 
         h1 {
