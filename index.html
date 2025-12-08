@@ -84,6 +84,45 @@
             box-shadow: 0 0 15px rgba(255,215,0,0.5);
         }
 
+        .second-hand {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            transform-origin: bottom center;
+            transform: translateX(-50%) rotate(0deg);
+            width: 2px;
+            height: 42%;
+            background: rgba(255,255,255,0.5);
+            border-radius: 1px;
+            z-index: 14;
+        }
+
+        .confetti {
+            position: fixed;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .confetti-piece {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            opacity: 0;
+            animation: confetti-fall 3s ease-out forwards;
+        }
+
+        @keyframes confetti-fall {
+            0% {
+                opacity: 1;
+                transform: translateY(0) rotate(0deg) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(400px) rotate(720deg) scale(0.5);
+            }
+        }
+
         .current-activity {
             margin-top: 30px;
             padding: 20px 40px;
@@ -160,6 +199,7 @@
             <svg viewBox="0 0 240 240" id="clock-svg">
                 <!-- Segments will be drawn here -->
             </svg>
+            <div class="second-hand" id="second-hand"></div>
             <div class="hand" id="hand"></div>
             <div class="clock-center"></div>
         </div>
@@ -174,6 +214,90 @@
     <div class="legend" id="legend"></div>
 
     <script>
+        // Create audio context for gentle chime
+        let audioContext = null;
+
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playChime() {
+            if (!audioContext) return;
+
+            // Create a gentle, pleasant chime
+            const now = audioContext.currentTime;
+
+            // First tone
+            const osc1 = audioContext.createOscillator();
+            const gain1 = audioContext.createGain();
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(523.25, now); // C5
+            gain1.gain.setValueAtTime(0.3, now);
+            gain1.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
+            osc1.connect(gain1);
+            gain1.connect(audioContext.destination);
+            osc1.start(now);
+            osc1.stop(now + 1.5);
+
+            // Second tone (harmony)
+            const osc2 = audioContext.createOscillator();
+            const gain2 = audioContext.createGain();
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(659.25, now + 0.15); // E5
+            gain2.gain.setValueAtTime(0, now);
+            gain2.gain.setValueAtTime(0.2, now + 0.15);
+            gain2.gain.exponentialRampToValueAtTime(0.01, now + 1.8);
+            osc2.connect(gain2);
+            gain2.connect(audioContext.destination);
+            osc2.start(now + 0.15);
+            osc2.stop(now + 1.8);
+
+            // Third tone (resolve)
+            const osc3 = audioContext.createOscillator();
+            const gain3 = audioContext.createGain();
+            osc3.type = 'sine';
+            osc3.frequency.setValueAtTime(783.99, now + 0.3); // G5
+            gain3.gain.setValueAtTime(0, now);
+            gain3.gain.setValueAtTime(0.15, now + 0.3);
+            gain3.gain.exponentialRampToValueAtTime(0.01, now + 2);
+            osc3.connect(gain3);
+            gain3.connect(audioContext.destination);
+            osc3.start(now + 0.3);
+            osc3.stop(now + 2);
+        }
+
+        function createConfetti() {
+            const container = document.createElement('div');
+            container.className = 'confetti';
+            document.body.appendChild(container);
+
+            const colors = ['#ffd700', '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7', '#dfe6e9', '#a29bfe'];
+
+            for (let i = 0; i < 30; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'confetti-piece';
+                piece.style.left = Math.random() * 100 + 'vw';
+                piece.style.top = Math.random() * 30 + 'vh';
+                piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                piece.style.animationDelay = Math.random() * 0.5 + 's';
+                piece.style.animationDuration = (2 + Math.random() * 2) + 's';
+                container.appendChild(piece);
+            }
+
+            setTimeout(() => container.remove(), 4000);
+        }
+
+        function celebrateTransition() {
+            createConfetti();
+            playChime();
+        }
+
+        // Initialize audio on first user interaction
+        document.addEventListener('click', initAudio, { once: true });
+        document.addEventListener('touchstart', initAudio, { once: true });
+
         const schedule = [
             { start: 0, end: 7, label: "Sleep", color: "#1e3a5f", emoji: "😴" },
             { start: 7, end: 8, label: "Wake Up, Breakfast, Get Ready", color: "#4a7c59", emoji: "🌅" },
@@ -271,6 +395,8 @@
             return schedule[0];
         }
 
+        let lastActivityLabel = null;
+
         function updateClock() {
             const now = new Date();
             const hours = now.getHours();
@@ -278,12 +404,25 @@
             const seconds = now.getSeconds();
 
             const currentHour = hours + minutes / 60 + seconds / 3600;
-            const angle = hourToAngle(currentHour);
+            const hourAngle = hourToAngle(currentHour);
 
+            // Update hour hand
             const hand = document.getElementById('hand');
-            hand.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+            hand.style.transform = `translateX(-50%) rotate(${hourAngle}deg)`;
+
+            // Update second hand (full rotation every 60 seconds)
+            const secondAngle = (seconds / 60) * 360;
+            const secondHand = document.getElementById('second-hand');
+            secondHand.style.transform = `translateX(-50%) rotate(${secondAngle}deg)`;
 
             const activity = getCurrentActivity(currentHour);
+
+            // Check for activity transition
+            if (lastActivityLabel !== null && lastActivityLabel !== activity.label) {
+                celebrateTransition();
+            }
+            lastActivityLabel = activity.label;
+
             document.getElementById('activity-text').textContent = activity.emoji + " " + activity.label;
             updateLegendHighlight(activity.label);
 
