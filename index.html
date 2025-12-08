@@ -349,20 +349,7 @@
         }
 
         .clock-segment {
-            transition: stroke 0.3s ease, stroke-width 0.3s ease, opacity 0.3s ease;
-            stroke: transparent;
-            stroke-width: 0;
-        }
-
-        .clock-segment.highlighted {
-            stroke: #ffd700;
-            stroke-width: 4;
-            opacity: 1;
-        }
-
-        .clock-segment.fading {
-            stroke: transparent;
-            stroke-width: 0;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -953,11 +940,23 @@
             });
         }
 
+        // Helper to lighten a hex color
+        function lightenColor(hex, percent) {
+            const num = parseInt(hex.replace('#', ''), 16);
+            const r = Math.min(255, Math.floor((num >> 16) + (255 - (num >> 16)) * percent));
+            const g = Math.min(255, Math.floor(((num >> 8) & 0x00FF) + (255 - ((num >> 8) & 0x00FF)) * percent));
+            const b = Math.min(255, Math.floor((num & 0x0000FF) + (255 - (num & 0x0000FF)) * percent));
+            return '#' + (0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1);
+        }
+
         function highlightSection(label) {
             // Clear any existing timeout
             if (userHighlightTimeout) {
                 clearTimeout(userHighlightTimeout);
             }
+
+            // First, restore any previously highlighted segments
+            clearSegmentHighlights();
 
             userHighlight = label;
 
@@ -970,12 +969,13 @@
                 }
             });
 
-            // Highlight clock segment
+            // Highlight clock segment by changing fill color directly
             document.querySelectorAll('.clock-segment').forEach(seg => {
                 const segLabel = seg.getAttribute('data-label');
-                seg.classList.remove('highlighted', 'fading');
                 if (segLabel === label) {
-                    seg.classList.add('highlighted');
+                    const originalColor = seg.getAttribute('data-original-color') || seg.getAttribute('fill');
+                    seg.setAttribute('data-original-color', originalColor);
+                    seg.setAttribute('fill', lightenColor(originalColor, 0.4));
                 }
             });
 
@@ -985,16 +985,25 @@
             }, 1000);
         }
 
+        function clearSegmentHighlights() {
+            document.querySelectorAll('.clock-segment').forEach(seg => {
+                const originalColor = seg.getAttribute('data-original-color');
+                if (originalColor) {
+                    seg.setAttribute('fill', originalColor);
+                }
+            });
+        }
+
         function fadeOutHighlight() {
-            // Add fading class to trigger CSS transition
+            // Add fading class to legend items
             document.querySelectorAll('.legend-item.highlighted').forEach(item => {
                 item.classList.add('fading');
             });
-            document.querySelectorAll('.clock-segment.highlighted').forEach(seg => {
-                seg.classList.add('fading');
-            });
 
-            // Remove all classes after fade completes
+            // Restore segment colors
+            clearSegmentHighlights();
+
+            // Remove legend classes after fade completes
             setTimeout(() => {
                 clearHighlight();
             }, 1000);
@@ -1005,9 +1014,7 @@
             document.querySelectorAll('.legend-item').forEach(item => {
                 item.classList.remove('highlighted', 'fading');
             });
-            document.querySelectorAll('.clock-segment').forEach(seg => {
-                seg.classList.remove('highlighted', 'fading');
-            });
+            clearSegmentHighlights();
         }
 
         // Handle taps on the clock - iOS-optimized approach
