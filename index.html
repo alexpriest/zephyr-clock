@@ -93,8 +93,15 @@
         h1 {
             color: #fff;
             font-size: 2.5rem;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .date-display {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
         }
 
         .clock-container {
@@ -293,6 +300,7 @@
 </head>
 <body>
     <h1>Zephyr's Day Clock</h1>
+    <div class="date-display" id="date-display"></div>
 
     <div class="container">
         <div class="clock-container">
@@ -406,9 +414,9 @@
         document.addEventListener('touchstart', initAudio, { once: true });
         document.addEventListener('touchend', initAudio, { once: true });
 
-        // Schedule for drawing (sleep is one segment wrapping around midnight)
-        const scheduleForDrawing = [
-            { start: 20.25, end: 31, label: "Sleep", color: "#1e3a5f", emoji: "😴" }, // 8:15pm to 7am (31 = 24+7)
+        // Base schedule (Tues, Thurs, Fri)
+        const baseScheduleForDrawing = [
+            { start: 20.25, end: 31, label: "Sleep", color: "#1e3a5f", emoji: "😴" },
             { start: 7, end: 8, label: "Wake Up, Breakfast, Get Ready", color: "#4a7c59", emoji: "🌅" },
             { start: 8, end: 8.5, label: "Go to School", color: "#e8a838", emoji: "🚗" },
             { start: 8.5, end: 17, label: "School", color: "#5ba4d9", emoji: "🏫" },
@@ -419,8 +427,21 @@
             { start: 20, end: 20.25, label: "Songs", color: "#5d4e7a", emoji: "🎵" },
         ];
 
-        // Schedule for time lookup (separate early/late sleep for logic)
-        const schedule = [
+        // Jiu-Jitsu schedule (Mon, Wed) - adds jiu-jitsu from 4-5pm
+        const jiuJitsuScheduleForDrawing = [
+            { start: 20.25, end: 31, label: "Sleep", color: "#1e3a5f", emoji: "😴" },
+            { start: 7, end: 8, label: "Wake Up, Breakfast, Get Ready", color: "#4a7c59", emoji: "🌅" },
+            { start: 8, end: 8.5, label: "Go to School", color: "#e8a838", emoji: "🚗" },
+            { start: 8.5, end: 16, label: "School", color: "#5ba4d9", emoji: "🏫" },
+            { start: 16, end: 17, label: "Jiu-Jitsu", color: "#d35400", emoji: "🥋" },
+            { start: 17, end: 18, label: "Play", color: "#7eb5e0", emoji: "🎨" },
+            { start: 18, end: 19, label: "Dinner", color: "#e88a5a", emoji: "🍽️" },
+            { start: 19, end: 19.5, label: "Bath & Jammies", color: "#c97b84", emoji: "🛁" },
+            { start: 19.5, end: 20, label: "Stories & Candlelight", color: "#8b6aa8", emoji: "📚" },
+            { start: 20, end: 20.25, label: "Songs", color: "#5d4e7a", emoji: "🎵" },
+        ];
+
+        const baseSchedule = [
             { start: 0, end: 7, label: "Sleep", color: "#1e3a5f", emoji: "😴" },
             { start: 7, end: 8, label: "Wake Up, Breakfast, Get Ready", color: "#4a7c59", emoji: "🌅" },
             { start: 8, end: 8.5, label: "Go to School", color: "#e8a838", emoji: "🚗" },
@@ -432,6 +453,37 @@
             { start: 20, end: 20.25, label: "Songs", color: "#5d4e7a", emoji: "🎵" },
             { start: 20.25, end: 24, label: "Sleep", color: "#1e3a5f", emoji: "😴" },
         ];
+
+        const jiuJitsuSchedule = [
+            { start: 0, end: 7, label: "Sleep", color: "#1e3a5f", emoji: "😴" },
+            { start: 7, end: 8, label: "Wake Up, Breakfast, Get Ready", color: "#4a7c59", emoji: "🌅" },
+            { start: 8, end: 8.5, label: "Go to School", color: "#e8a838", emoji: "🚗" },
+            { start: 8.5, end: 16, label: "School", color: "#5ba4d9", emoji: "🏫" },
+            { start: 16, end: 17, label: "Jiu-Jitsu", color: "#d35400", emoji: "🥋" },
+            { start: 17, end: 18, label: "Play", color: "#7eb5e0", emoji: "🎨" },
+            { start: 18, end: 19, label: "Dinner", color: "#e88a5a", emoji: "🍽️" },
+            { start: 19, end: 19.5, label: "Bath & Jammies", color: "#c97b84", emoji: "🛁" },
+            { start: 19.5, end: 20, label: "Stories & Candlelight", color: "#8b6aa8", emoji: "📚" },
+            { start: 20, end: 20.25, label: "Songs", color: "#5d4e7a", emoji: "🎵" },
+            { start: 20.25, end: 24, label: "Sleep", color: "#1e3a5f", emoji: "😴" },
+        ];
+
+        function getDayOfWeek() {
+            return new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
+        }
+
+        function isJiuJitsuDay() {
+            const day = getDayOfWeek();
+            return day === 1 || day === 3; // Monday or Wednesday
+        }
+
+        function getScheduleForDrawing() {
+            return isJiuJitsuDay() ? jiuJitsuScheduleForDrawing : baseScheduleForDrawing;
+        }
+
+        function getSchedule() {
+            return isJiuJitsuDay() ? jiuJitsuSchedule : baseSchedule;
+        }
 
         function hourToAngle(hour) {
             // 12am (midnight) at top = 0 degrees, goes clockwise
@@ -471,6 +523,7 @@
             const radius = 100;
 
             // Draw schedule segments using the drawing schedule (sleep as one piece)
+            const scheduleForDrawing = getScheduleForDrawing();
             scheduleForDrawing.forEach(item => {
                 // Handle wrap-around for sleep (end > 24 means it wraps)
                 const startAngle = hourToAngle(item.start % 24);
@@ -548,6 +601,7 @@
         }
 
         function getCurrentActivity(hour) {
+            const schedule = getSchedule();
             for (const item of schedule) {
                 if (hour >= item.start && hour < item.end) {
                     return item;
@@ -595,7 +649,7 @@
             document.getElementById('current-time').textContent = timeStr;
         }
 
-        const legendItems = [
+        const baseLegendItems = [
             { label: "Sleep", color: "#1e3a5f", emoji: "😴" },
             { label: "Wake Up, Breakfast, Get Ready", color: "#4a7c59", emoji: "🌅" },
             { label: "Go to School", color: "#e8a838", emoji: "🚗" },
@@ -606,6 +660,30 @@
             { label: "Stories & Candlelight", color: "#8b6aa8", emoji: "📚" },
             { label: "Songs", color: "#5d4e7a", emoji: "🎵" },
         ];
+
+        const jiuJitsuLegendItems = [
+            { label: "Sleep", color: "#1e3a5f", emoji: "😴" },
+            { label: "Wake Up, Breakfast, Get Ready", color: "#4a7c59", emoji: "🌅" },
+            { label: "Go to School", color: "#e8a838", emoji: "🚗" },
+            { label: "School", color: "#5ba4d9", emoji: "🏫" },
+            { label: "Jiu-Jitsu", color: "#d35400", emoji: "🥋" },
+            { label: "Play", color: "#7eb5e0", emoji: "🎨" },
+            { label: "Dinner", color: "#e88a5a", emoji: "🍽️" },
+            { label: "Bath & Jammies", color: "#c97b84", emoji: "🛁" },
+            { label: "Stories & Candlelight", color: "#8b6aa8", emoji: "📚" },
+            { label: "Songs", color: "#5d4e7a", emoji: "🎵" },
+        ];
+
+        function getLegendItems() {
+            return isJiuJitsuDay() ? jiuJitsuLegendItems : baseLegendItems;
+        }
+
+        function updateDateDisplay() {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const dateStr = now.toLocaleDateString('en-US', options);
+            document.getElementById('date-display').textContent = dateStr;
+        }
 
         function playTapSound() {
             if (!audioContext) return;
@@ -631,7 +709,9 @@
 
         function buildLegend() {
             const legend = document.getElementById('legend');
+            legend.innerHTML = ''; // Clear existing
 
+            const legendItems = getLegendItems();
             legendItems.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'legend-item';
@@ -772,11 +852,26 @@
         }
 
         // Initialize
+        updateDateDisplay();
         drawClock();
         buildLegend();
         setupClockTapHandler();
         updateClock();
         setInterval(updateClock, 1000);
+
+        // Check for day change every minute and rebuild if needed
+        let currentDay = getDayOfWeek();
+        setInterval(() => {
+            const newDay = getDayOfWeek();
+            if (newDay !== currentDay) {
+                currentDay = newDay;
+                updateDateDisplay();
+                // Clear and redraw the clock
+                document.getElementById('clock-svg').innerHTML = '';
+                drawClock();
+                buildLegend();
+            }
+        }, 60000);
     </script>
 </body>
 </html>
