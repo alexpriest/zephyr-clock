@@ -259,6 +259,14 @@
             background: rgba(255,255,255,0.1);
         }
 
+        /* iOS tap optimization */
+        .legend-item,
+        .clock,
+        .day-toggle {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
         .legend-item.active,
         .legend-item.highlighted {
             background: rgba(255,215,0,0.2);
@@ -467,9 +475,18 @@
         }
 
         // Initialize audio on first user interaction
-        document.addEventListener('click', initAudio, { once: true });
-        document.addEventListener('touchstart', initAudio, { once: true });
-        document.addEventListener('touchend', initAudio, { once: true });
+        function initAudioOnce() {
+            initAudio();
+            document.removeEventListener('pointerdown', initAudioOnce);
+            document.removeEventListener('touchstart', initAudioOnce);
+            document.removeEventListener('click', initAudioOnce);
+        }
+        if (window.PointerEvent) {
+            document.addEventListener('pointerdown', initAudioOnce);
+        } else {
+            document.addEventListener('touchstart', initAudioOnce);
+            document.addEventListener('click', initAudioOnce);
+        }
 
         // Base schedule (Tues, Thurs, Fri)
         const baseScheduleForDrawing = [
@@ -869,6 +886,15 @@
             highlightSection(label);
         }
 
+        // Debounced tap handler for legend items
+        let lastLegendTapTime = 0;
+        function debouncedLegendTap(label) {
+            const now = Date.now();
+            if (now - lastLegendTapTime < 300) return;
+            lastLegendTapTime = now;
+            handleLegendTap(label);
+        }
+
         function buildLegend() {
             const legend = document.getElementById('legend');
             legend.innerHTML = ''; // Clear existing
@@ -882,15 +908,24 @@
                     <div class="legend-color" style="background: ${item.color}">${item.emoji}</div>
                     <span>${item.label}</span>
                 `;
-                // Use both click and touchend for iPad compatibility
-                div.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    handleLegendTap(item.label);
-                });
-                div.addEventListener('touchend', (e) => {
-                    e.preventDefault();
-                    handleLegendTap(item.label);
-                });
+
+                // Use pointer events if available (iOS Safari 13+)
+                if (window.PointerEvent) {
+                    div.addEventListener('pointerup', (e) => {
+                        if (e.pointerType === 'touch' || e.pointerType === 'mouse') {
+                            debouncedLegendTap(item.label);
+                        }
+                    });
+                } else {
+                    // Fallback: touchend with click backup
+                    div.addEventListener('touchend', (e) => {
+                        e.preventDefault();
+                        debouncedLegendTap(item.label);
+                    });
+                    div.addEventListener('click', () => {
+                        debouncedLegendTap(item.label);
+                    });
+                }
                 legend.appendChild(div);
             });
         }
@@ -967,24 +1002,19 @@
             });
         }
 
-        // Handle taps on the clock
+        // Handle taps on the clock - iOS-optimized approach
         function setupClockTapHandler() {
             const clockContainer = document.querySelector('.clock');
+            let lastTapTime = 0;
 
-            function handleTap(e) {
+            function processClockTap(clientX, clientY) {
+                // Debounce to prevent double-firing from touch + click
+                const now = Date.now();
+                if (now - lastTapTime < 300) return;
+                lastTapTime = now;
+
                 // Get tap coordinates
                 const rect = clockContainer.getBoundingClientRect();
-                let clientX, clientY;
-
-                if (e.type === 'touchstart' || e.type === 'touchend') {
-                    const touch = e.changedTouches[0] || e.touches[0];
-                    if (!touch) return;
-                    clientX = touch.clientX;
-                    clientY = touch.clientY;
-                } else {
-                    clientX = e.clientX;
-                    clientY = e.clientY;
-                }
 
                 // Convert to position relative to clock center (0-1 range)
                 const relX = (clientX - rect.left) / rect.width - 0.5;
@@ -1008,9 +1038,26 @@
                 }
             }
 
-            // Try multiple event types for iPad compatibility
-            clockContainer.addEventListener('click', handleTap);
-            clockContainer.addEventListener('touchstart', handleTap, { passive: true });
+            // Use pointer events if available (modern iOS Safari supports these)
+            if (window.PointerEvent) {
+                clockContainer.addEventListener('pointerup', (e) => {
+                    if (e.pointerType === 'touch' || e.pointerType === 'mouse') {
+                        processClockTap(e.clientX, e.clientY);
+                    }
+                });
+            } else {
+                // Fallback for older browsers
+                clockContainer.addEventListener('touchend', (e) => {
+                    const touch = e.changedTouches[0];
+                    if (touch) {
+                        e.preventDefault();
+                        processClockTap(touch.clientX, touch.clientY);
+                    }
+                });
+                clockContainer.addEventListener('click', (e) => {
+                    processClockTap(e.clientX, e.clientY);
+                });
+            }
         }
 
         // Initialize
