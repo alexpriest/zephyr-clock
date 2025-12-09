@@ -330,6 +330,11 @@
 
         .clock-segment {
             cursor: pointer;
+            transition: fill 0.3s ease, filter 0.3s ease;
+        }
+
+        .clock-segment.glowing {
+            filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8)) drop-shadow(0 0 12px rgba(255, 215, 0, 0.5));
         }
     </style>
 </head>
@@ -867,20 +872,21 @@
                 }
             });
 
-            // Highlight clock segment using style.fill (higher specificity, better iOS support)
+            // Highlight clock segment using style.fill + glow effect
             document.querySelectorAll('.clock-segment').forEach(seg => {
                 const segLabel = seg.getAttribute('data-label');
                 if (segLabel === label) {
                     const originalColor = seg.getAttribute('data-original-color') || seg.getAttribute('fill');
                     seg.setAttribute('data-original-color', originalColor);
                     seg.style.fill = lightenColor(originalColor, 0.4);
+                    seg.classList.add('glowing');
                 }
             });
 
-            // Start fade out after 1 second
+            // Start fade out after 1.5 seconds
             userHighlightTimeout = setTimeout(() => {
                 fadeOutHighlight();
-            }, 1000);
+            }, 1500);
         }
 
         function clearSegmentHighlights() {
@@ -889,6 +895,7 @@
                 if (originalColor) {
                     seg.style.fill = originalColor;
                 }
+                seg.classList.remove('glowing');
             });
         }
 
